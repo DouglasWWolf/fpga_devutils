@@ -1,0 +1,38 @@
+script=script.tcl
+project=$(ls *.xpr)
+
+if [ -z $project ]; then
+   echo "No Vivado project found"
+   exit 1
+fi
+
+
+#==============================================================================
+# This looks up the Vivado version number that was used to create the project
+# and ensures that the same version is used to process it here
+#==============================================================================
+get_vivado()
+{
+   version=
+   grep 2024.2 $1 >/dev/null && version=2024.2
+   grep 2021.1 $1 >/dev/null && version=2021.2
+   if [ -z $version ]; then
+       echo "Unable to determine Vivado version for $project"
+       exit 1
+   fi
+   echo $VIVADO | sed "s/Vivado\/20[0-9][0-9]\.[0-9]/Vivado\/${version}/g"
+}
+#==============================================================================
+
+VIVADO=$(get_vivado $project)
+
+echo "open_project $project" >$script 
+echo "reset_project"        >>$script
+echo "close_project"        >>$script
+
+$VIVADO  2>&1 -nojournal -nolog -mode batch -source $script
+
+rm $script
+
+
+ 

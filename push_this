@@ -1,0 +1,8 @@
+dir=/opt/fpga_devutils
+if [ $(pwd) != $dir ]; then
+    echo "You need to be in $dir to do that"
+    exit 1
+fi
+git add .
+git commit -m "No change history kept"
+git push origin main
