@@ -22,7 +22,7 @@ get_vivado()
 {
    version=
    grep 2024.2 $1 >/dev/null && version=2024.2
-   grep 2021.1 $1 >/dev/null && version=2021.2
+   grep 2021.1 $1 >/dev/null && version=2021.1
    if [ -z $version ]; then
        echo "Unable to determine Vivado version for $project"
        exit 1
