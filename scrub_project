@@ -41,9 +41,13 @@ if [ -z "$project_file" ]; then
    exit 1
 fi
 
+# Clean up the local folder
+rm -rf *\.hw/webtalk/*
+rm -rf *\.hw/webtalk/\.*
+rm -rf .Xil runtime/.Xil
+
 # Get our path to the appropriate version of VIVADO
 VIVADO=$(get_vivado $project_file)
-
 
 # Get the base name of the project
 project="${project_file%.*}"

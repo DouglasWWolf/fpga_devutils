@@ -1,11 +1,15 @@
 script=script.tcl
-project=$(ls *.xpr)
+project_file=$(ls *.xpr)
 
-if [ -z $project ]; then
+if [ -z $project_file ]; then
    echo "No Vivado project found"
    exit 1
 fi
 
+# Clean up the local folder
+rm -rf *\.hw/webtalk/*
+rm -rf *\.hw/webtalk/\.*
+rm -rf .Xil runtime/.Xil
 
 #==============================================================================
 # This looks up the Vivado version number that was used to create the project
@@ -17,18 +21,18 @@ get_vivado()
    grep 2024.2 $1 >/dev/null && version=2024.2
    grep 2021.1 $1 >/dev/null && version=2021.1
    if [ -z $version ]; then
-       echo "Unable to determine Vivado version for $project"
+       echo "Unable to determine Vivado version for $project_file"
        exit 1
    fi
    echo $VIVADO | sed "s/Vivado\/20[0-9][0-9]\.[0-9]/Vivado\/${version}/g"
 }
 #==============================================================================
 
-VIVADO=$(get_vivado $project)
+VIVADO=$(get_vivado $project_file)
 
-echo "open_project $project" >$script 
-echo "reset_project"        >>$script
-echo "close_project"        >>$script
+echo "open_project $project_file" >$script 
+echo "reset_project"             >>$script
+echo "close_project"             >>$script
 
 $VIVADO  2>&1 -nojournal -nolog -mode batch -source $script
 
