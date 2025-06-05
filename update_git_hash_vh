@@ -38,7 +38,7 @@ update_githash_file()
 
     # If we couldn't find a hash-file, complain
     if [ -z $fqp ]; then
-        echo "Couldn't find ${ofile}.vh!"
+        echo "Couldn't find ${ofile}.vh!" 1>&2
         return 2
     fi
 
