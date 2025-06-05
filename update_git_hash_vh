@@ -65,7 +65,7 @@ update_githash_file()
     if [ -f ${ofile}.vh ]; then
         fqp=${ofile}.vh
     else
-        fqp=$(find . | grep "${ofile}\.vh$")
+        fqp=$(find . | grep "/${ofile}\.vh$")
     fi
 
     # If we couldn't find a hash-file, complain
