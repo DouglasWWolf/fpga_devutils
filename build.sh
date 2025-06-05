@@ -128,6 +128,9 @@ if [ -z "$project_file" ]; then
    exit 1
 fi
 
+# Clean up existing Vivado log/journal cruft
+rm -rf vivado*\.log vivado*\.jou
+
 # Determine the executable path to the correct version of Vivado
 VIVADO=$(get_vivado $project_file)
 
