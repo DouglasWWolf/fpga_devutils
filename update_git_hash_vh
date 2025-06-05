@@ -1,0 +1,69 @@
+#==================================================================
+# This function will find "git_hash.vh" in the current directory
+# tree, and silently update it to contain the git-hash of the
+# most recent commit, formatted as a Verilog "localparam".
+#
+# This function will not affect the "last-modified" date of the
+# "git_hash.vh" file, so the Vivado IPI won't erroneously complain
+# that we have updated a module.
+#
+# If you pass this function a value, that value will be used as
+# the hash (instead of the hash of the most recent commit)
+#
+# Doug Wolf wrote this
+#==================================================================
+update_githash_file()
+{
+    # This is the basename of the file we're going to update
+    local ofile=git_hash
+
+    # We don't have a fully qualified path for our output file yet
+    local fqp=
+
+    # The caller may have passed us a hash
+    local hash=$1
+
+    # If the current directory isn't a git repo, complain and quit
+    if [ ! -d .git ]; then
+        echo "This is not a git repo!" 1>&2
+        return 1
+    fi
+
+    # If the hash-file doesn't exist in the current directory, find it
+    if [ -f ${ofile}.vh ]; then
+        fqp=${ofile}.vh
+    else
+        fqp=$(find . | grep "${ofile}\.vh$")
+    fi
+
+    # If we couldn't find a hash-file, complain
+    if [ -z $fqp ]; then
+        echo "Couldn't find ${ofile}.vh!"
+        return 2
+    fi
+
+    # If the caller didn't hand us a hash, find the git-hash of
+    # the most recent commit
+    if [ -z $hash ]; then
+        hash=$(git log -1 --pretty=format:"%H")
+    fi
+
+    # Create a verilog header file with the git-hash
+    echo "//"                                                 >new_hash.vh
+    echo "// -- DO NOT EDIT! -- this file is auto-generated" >>new_hash.vh
+    echo "//"                                                >>new_hash.vh
+    echo "localparam[159:0] GIT_HASH = 160'h${hash};"        >>new_hash.vh
+
+    # Copy our new hashfile into the project source, but *without* updating
+    # the "last modified time" or any other meta-data.   This will prevent
+    # Vivado from erroneously thinking that we've updated a module.
+    cp -p new_hash.vh $fqp
+
+    # And we don't need our temporary output file anymore
+    rm -rf new_hash.vh
+}
+#==================================================================
+
+update_githash_file $1
+
+
