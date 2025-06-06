@@ -153,6 +153,9 @@ EOT
 
 #==================================================================
 # This displays each log file as they come into existence
+#
+# When this script returns, the file "build.result" will hold the
+# string "pass" or "fail"
 #==================================================================
 show_logs()
 {
@@ -205,6 +208,56 @@ show_logs()
 }
 #==================================================================
 
+#==================================================================
+# This displays the folder where the build artifacts will be stored
+#
+# This function expect a YYYYMMDD_HHMMSS timestamp to be passed in
+#==================================================================
+get_artifact_folder()
+{  
+    # Fetch the timestamp from the command line
+    local timestamp=$1
+
+    # If there is a 2nd option in the command line, it's project name
+    local project_name=$2
+    test -z "$project_name" && project_name=$(basename $PWD)
+
+    # Fetch the short hash of the most recent git commit
+    local hash=$(git log -1 --pretty=format:"%H" | cut -c1-8)
+
+    # And display the directory where our build artifacts will go
+    echo $VIVADO_BUILD_FOLDER/${project_name}/${timestamp}_${hash}
+}
+#==================================================================
+
+
+#==================================================================
+# This copies the build artifacts to the artifact folder
+#==================================================================
+copy_build_artifacts()
+{
+    # Find the name of the artifact folder
+    dest=$1
+
+    # If there is a 2nd parameter, its the project name
+    local project_name=$2
+    test -z "$project_name" && project_name=$(basename $PWD)
+
+    # Create the folder for the artifacts
+    mkdir -p $dest
+
+    # Determine which of our three build artifacts exist
+    bitfile=$(find ${project}.runs/impl_1 | grep  "\.bit$")
+    binfile=$(find ${project}.runs/impl_1 | grep  "\.bin$")
+    ltxfile=$(find ${project}.runs/impl_1 | grep  "\.ltx$")
+
+    # Copy each build artifact to the destination directory
+    test -z $bitfile || cp $bitfile $dest/${project_name}.bit
+    test -z $binfile || cp $binfile $dest/${project_name}.bin
+    test -z $ltxfile || cp $ltxfile $dest/${project_name}.ltx
+}
+#==================================================================
+
 
 # Determine the name of the Vivado project file
 project_file=$(ls *.xpr 2>/dev/null)
@@ -216,7 +269,7 @@ if [ -z "$project_file" ]; then
 fi
 
 # Make sure this is a git repo
-if [ -d .git ]; then
+if [ ! -d .git ]; then
     echo "Not a git repo: $PWD" 1>&2
     exit 1
 fi
@@ -225,6 +278,12 @@ fi
 output=$(ps aux | grep Vivado | grep $PWD)
 if [ ! -z "$output" ]; then
     echo "There is already a build going for $PWD" 1>&2
+    exit 1
+fi
+
+# Make sure that $VIVADO_BUILD_FOLDER is defined
+if [ -z $VIVADO_BUILD_FOLDER ]; then
+    echo "\$VIVADO_BUILD_FOLDER not defined!" 1>&2
     exit 1
 fi
 
@@ -240,11 +299,21 @@ VIVADO=$(get_vivado $project_file)
 # Get the base name of the project (without file extension)
 project="${project_file%.*}"
 
+# Get rid of all the end products of any previous build
+rm -rf ${project}.runs/impl_1/*
+
 # Make sure the log files don't exist
 remove_runme_logs
 
+# This timestamp will be used to name the build artifact folder
+# and will also be written into the bitstream file
+timestamp=$(date +"%Y%m%d_%H%M%S")
+
 # Make sure that git_hash.vh contains the hash from the current commit
 update_githash_file
+
+# Fetch the name of the folder where our build artifacts will be stored
+artifact_folder=$(get_artifact_folder $timestamp)
 
 # Kick off Vivado, which will run in the background
 $VIVADO -mode batch -source vivado_build.tcl
@@ -260,5 +329,12 @@ while true; do
    sleep 2
 done
 
-
-
+# If the build was successful, copy the artifacts
+if [ $(cat build.result) == "pass" ]; then
+    copy_build_artifacts $artifact_folder
+    post_build="./post_build.sh"
+    if [ -f $post_build ]; then
+        chmod +x $post_build
+        $post_build $artifact_folder
+    fi
+fi

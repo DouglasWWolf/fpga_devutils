@@ -1,54 +1,66 @@
+project=project
 
 
-show_logs()
-{
-    rm -rf build.result
-    echo >logs_completed
-    while true; do
-        
-        # Generate a list of "runme.log" log files
-        find . | grep "runme\.log$" >log_list
+#==================================================================
+# This displays the folder where the build artifacts will be stored
+#
+# This function expect a YYYYMMDD_HHMMSS timestamp to be passed in
+#==================================================================
+get_artifact_folder()
+{  
+    # Fetch the timestamp from the command line
+    local timestamp=$1
 
-        # Read the list, one line at a time
-        while IFS= read logfile; do
+    # If there is a 2nd option in the command line, it's project name
+    local project_name=$2
+    test -z "$project_name" && project_name=$(basename $PWD)
 
-            # Have we already completed reading this logfile?
-            grep -q $logfile logs_completed
-            
-            # If we've already read this logfile, skip it
-            test $? -eq 0 && continue;
+    # Fetch the short hash of the most recent git commit
+    local hash=$(git log -1 --pretty=format:"%H" | cut -c1-8)
 
-            # Monitor this log file
-            while true; do
-                sleep 1
-                cat $logfile
-                grep -q "Exiting Vivado" $logfile
-                test $? -eq 0 && break
-            done
-          
-            
-            # Record the fact that we've already read this logfile
-            echo $logfile >>logs_completed
-            
-            # Does this logfile indicated a failure?
-            grep "ERROR:" $logfile
-            
-            # If it does, record the result.  We're done
-            if [ $? -eq 0 ]; then
-                echo fail >build.result
-                return 1
-            fi
-            
-            # If this logfile is the final logfile, we're done
-            echo $logfile | grep -q "impl_1/runme.log$"
-            if [ $? -eq 0 ]; then
-                echo pass >build.result
-                return 0
-            fi
-
-        done < log_list
-    done
+    # And display the directory where our build artifacts will go
+    echo $VIVADO_BUILD_FOLDER/${project_name}/${timestamp}_${hash}
 }
+#==================================================================
 
 
-show_logs
+#==================================================================
+# This copies the build artifacts to the artifact folder
+#==================================================================
+copy_build_artifacts()
+{
+    # Find the name of the artifact folder
+    dest=$1
+
+    # If there is a 2nd parameter, its the project name
+    local project_name=$2
+    test -z "$project_name" && project_name=$(basename $PWD)
+
+    # Create the folder for the artifacts
+    mkdir -p $dest
+
+    # Determine which of our three build artifacts exist
+    bitfile=$(find ${project}.runs/impl_1 | grep  "\.bit$")
+    binfile=$(find ${project}.runs/impl_1 | grep  "\.bin$")
+    ltxfile=$(find ${project}.runs/impl_1 | grep  "\.ltx$")
+
+    # Copy each build artifact to the destination directory
+    test -z $bitfile || cp $bitfile $dest/${project_name}.bit
+    test -z $binfile || cp $binfile $dest/${project_name}.bin
+    test -z $ltxfile || cp $ltxfile $dest/${project_name}.ltx
+}
+#==================================================================
+
+
+timestamp=$(date +"%Y%m%d_%H%M%S")
+
+artifact_folder=$(get_artifact_folder $timestamp)
+
+copy_build_artifacts $artifact_folder
+
+
+
+
+
+
+
