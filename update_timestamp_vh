@@ -1,15 +1,14 @@
 #==================================================================
-# This function will find "git_hash.vh" in the current directory
-# tree, and silently update it to contain the git-hash of the
-# most recent commit, formatted as a Verilog "localparam".
+# This function will find "timestamp.vh" in the current directory
+# tree, and silently update it to contain the specified (or current)
+# date and time
 #
 # This function will not affect the "last-modified" date of the
-# "git_hash.vh" file, so the Vivado IPI won't erroneously complain
+# "timestamp.vh" file, so the Vivado IPI won't erroneously complain
 # that we have updated a module.
 #
 # Function options:
 #  --dir <working_directory_name>
-#  --hash <string_of_hex>
 #
 # Doug Wolf wrote this
 #==================================================================
