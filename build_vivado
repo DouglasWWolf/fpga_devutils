@@ -270,7 +270,8 @@ show_logs()
     while true; do
         
         # Generate a list of "runme.log" log files
-        find . | grep "runme\.log$" >log_list
+        echo vivado.log              >log_list
+        find . | grep "runme\.log$" >>log_list
 
         # Read the list, one line at a time
         while IFS= read logfile; do
@@ -418,7 +419,7 @@ timestamp=$(date +"%Y%m%d_%H%M%S")
 # Make sure that git_hash.vh contains the hash from the current commit
 update_githash_file
 
-# Quietly update the source file that contains the build-timestamp
+# Update the source file that contains the build-timestamp
 update_timestamp_file $timestamp
 
 # Fetch the name of the folder where our build artifacts will be stored
