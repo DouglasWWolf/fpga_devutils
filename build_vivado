@@ -246,7 +246,7 @@ remove_runme_logs()
 create_build_script()
 {
     local project_file=$1
-    cat <<EOT >vivado_build.tcl
+    cat <<EOT
     open_project $(realpath $project_file)
     reset_project
     update_compile_order -fileset sources_1
@@ -395,7 +395,7 @@ if [ -z $VIVADO_BUILD_FOLDER ]; then
 fi
 
 # Create the build script for this project
-create_build_script $project_file
+create_build_script $project_file >vivado_build.tcl
 
 # Clean up existing Vivado log/journal cruft
 rm -rf vivado*\.log vivado*\.jou
