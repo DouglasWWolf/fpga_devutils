@@ -1,17 +1,14 @@
 temp_file=vkill_list
 
 # Create a file that lists all the processes to kill
-ps aux | grep Vivado >$temp_file
+ps aux | grep Vivado | grep -v grep >$temp_file
 
 # Read the kill-list, one line at a time.  If the line doesn't
 # contain the word "grep", extract the PID from the line, and 
 # kill the process
 while IFS= read line; do
-    echo $line | grep -q "grep"
-    if [ $? -ne 0 ]; then
-        read _ pid _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <<<$line 
-        kill -9 $pid
-    fi
+    read _ pid _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <<<$line 
+    kill -9 $pid
 done < $temp_file
 
 # Clean up our temporary file

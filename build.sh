@@ -118,6 +118,103 @@ update_githash_file()
 }
 #==================================================================
 
+#==================================================================
+# This function removes every runme.log it finds
+#==================================================================
+remove_runme_logs()
+{
+    find . | grep "runme\.log$" >log_list
+    while IFS= read line; do
+            rm -rf $line
+    done < log_list
+    rm log_list
+}
+#==================================================================
+
+
+#==================================================================
+# Displays 1 if Vivado isn't running
+#==================================================================
+is_vivado_running()
+{
+    process_list=$(ps aux | grep Vivado | grep -v grep)
+    test -z "$process_list" && echo 0 || echo 1
+}
+#==================================================================
+      
+#==================================================================
+# Create the Vivado TCL build script
+#
+# $1 = The name of the project file
+#==================================================================
+create_build_script()
+{
+    local project_file=$1
+    cat <<EOT >vivado_build.tcl
+    open_project $(realpath $project_file)
+    reset_project
+    update_compile_order -fileset sources_1
+    set_param general.maxThreads 32
+    launch_runs impl_1 -to_step write_bitstream -jobs 32
+EOT
+}
+#==================================================================
+
+
+#==================================================================
+# This displays each log file as they come into existence
+#==================================================================
+show_logs()
+{
+    rm -rf build.result
+    echo >logs_completed
+    while true; do
+        
+        # Generate a list of "runme.log" log files
+        find . | grep "runme\.log$" >log_list
+
+        # Read the list, one line at a time
+        while IFS= read logfile; do
+
+            # Have we already completed reading this logfile?
+            grep -q $logfile logs_completed
+            
+            # If we've already read this logfile, skip it
+            test $? -eq 0 && continue;
+
+            # Monitor this log file
+            while true; do
+                sleep 1
+                cat $logfile
+                grep -q "Exiting Vivado" $logfile
+                test $? -eq 0 && break
+            done
+          
+            
+            # Record the fact that we've already read this logfile
+            echo $logfile >>logs_completed
+            
+            # Does this logfile indicated a failure?
+            grep "ERROR:" $logfile
+            
+            # If it does, record the result.  We're done
+            if [ $? -eq 0 ]; then
+                echo fail >build.result
+                return 1
+            fi
+            
+            # If this logfile is the final logfile, we're done
+            echo $logfile | grep -q "impl_1/runme.log$"
+            if [ $? -eq 0 ]; then
+                echo pass >build.result
+                return 0
+            fi
+
+        done < log_list
+    done
+}
+#==================================================================
+
 
 # Determine the name of the Vivado project file
 project_file=$(ls *.xpr)
@@ -127,6 +224,16 @@ if [ -z "$project_file" ]; then
    echo "No Vivado project found"
    exit 1
 fi
+
+# Make sure there's not already a build going for this project
+output=$(ps aux | grep Vivado | grep $PWD)
+if [ ! -z "$output" ]; then
+    echo "There is already a build going for $PWD" 1>&2
+    exit 1
+fi
+
+# Create the build script for this project
+create_build_script $project_file
 
 # Clean up existing Vivado log/journal cruft
 rm -rf vivado*\.log vivado*\.jou
@@ -142,43 +249,23 @@ synth_log=${project}.runs/synth_1/runme.log
 impl_log=${project}.runs/impl_1/runme.log
 
 # Make sure the log files don't exist
-rm -rf $synth_log $impl_log
+remove_runme_logs
 
 # Make sure that git_hash.vh contains the hash from the current commit
 update_githash_file
 
 # Kick off Vivado, which will run in the background
-$VIVADO -mode batch -source vbuild.tcl
+$VIVADO -mode batch -source vivado_build.tcl
 
-# Here we wait for sythesis to start
-echo ">>> Waiting for synthesis to begin <<<"
-while [ ! -f $synth_log ]; do
-    sleep 1
-done
+# Show the output of the logfiles in real-time
+show_logs
 
-# Here we continuously display the synth log and wait
-# for it to indicate that synthesis is complete
+# Wait for Vivado to call it quits for this job
+echo "Waiting for Vivado to exit..."
 while true; do
-   sleep 1
-   cat $synth_log
-   grep -q "Exiting Vivado" $synth_log
-   test $? -eq 0 && break
+   output=$(ps aux | grep Vivado | grep $PWD)
+   test -z "$output" && break
 done
 
-
-# Here we wait for implementation to start
-echo ">>> Waiting for implementation to begin <<<"
-while [ ! -f $impl_log ]; do
-    sleep 1
-done
-
-# Here we continuously display the impl log and wait
-# for it to indicate that the build is complete
-while true; do
-   sleep 1
-   cat $impl_log
-   grep -q "Exiting Vivado" $impl_log
-   test $? -eq 0 && break
-done
 
 

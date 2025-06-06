@@ -1,0 +1,54 @@
+
+
+show_logs()
+{
+    rm -rf build.result
+    echo >logs_completed
+    while true; do
+        
+        # Generate a list of "runme.log" log files
+        find . | grep "runme\.log$" >log_list
+
+        # Read the list, one line at a time
+        while IFS= read logfile; do
+
+            # Have we already completed reading this logfile?
+            grep -q $logfile logs_completed
+            
+            # If we've already read this logfile, skip it
+            test $? -eq 0 && continue;
+
+            # Monitor this log file
+            while true; do
+                sleep 1
+                cat $logfile
+                grep -q "Exiting Vivado" $logfile
+                test $? -eq 0 && break
+            done
+          
+            
+            # Record the fact that we've already read this logfile
+            echo $logfile >>logs_completed
+            
+            # Does this logfile indicated a failure?
+            grep "ERROR:" $logfile
+            
+            # If it does, record the result.  We're done
+            if [ $? -eq 0 ]; then
+                echo fail >build.result
+                return 1
+            fi
+            
+            # If this logfile is the final logfile, we're done
+            echo $logfile | grep -q "impl_1/runme.log$"
+            if [ $? -eq 0 ]; then
+                echo pass >build.result
+                return 0
+            fi
+
+        done < log_list
+    done
+}
+
+
+show_logs
