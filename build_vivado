@@ -102,19 +102,22 @@ update_githash_file()
         hash=$(git log -1 --pretty=format:"%H")
     fi
 
+    # This is the name of the temp file we'll create
+    temp_file=new_hash.vh
+
     # Create a verilog header file with the git-hash
-    echo "//"                                                 >new_hash.vh
-    echo "// -- DO NOT EDIT! -- this file is auto-generated" >>new_hash.vh
-    echo "//"                                                >>new_hash.vh
-    echo "localparam[159:0] GIT_HASH = 160'h${hash};"        >>new_hash.vh
+    echo "//"                                                 >$temp_file
+    echo "// -- DO NOT EDIT! -- this file is auto-generated" >>$temp_file
+    echo "//"                                                >>$temp_file
+    echo "localparam[159:0] GIT_HASH = 160'h${hash};"        >>$temp_file
 
     # Copy our new hashfile into the project source, but *without* updating
     # the "last modified time" or any other meta-data.   This will prevent
     # Vivado from erroneously thinking that we've updated a module.
-    cp -p new_hash.vh $fqp
+    cp -p $temp_file $fqp
 
     # And we don't need our temporary output file anymore
-    rm -rf new_hash.vh
+    rm -rf $temp_file
 }
 #==================================================================
 
