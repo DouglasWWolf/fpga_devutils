@@ -294,7 +294,7 @@ show_logs()
             # Record the fact that we've already read this logfile
             echo $logfile >>logs_completed
             
-            # Does this logfile indicated a failure?
+            # Does this logfile indicate a failure?
             grep "ERROR:" $logfile
             
             # If it does, record the result.  We're done
