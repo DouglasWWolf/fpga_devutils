@@ -131,16 +131,6 @@ remove_runme_logs()
 }
 #==================================================================
 
-
-#==================================================================
-# Displays 1 if Vivado isn't running
-#==================================================================
-is_vivado_running()
-{
-    process_list=$(ps aux | grep Vivado | grep -v grep)
-    test -z "$process_list" && echo 0 || echo 1
-}
-#==================================================================
       
 #==================================================================
 # Create the Vivado TCL build script
@@ -203,7 +193,7 @@ show_logs()
                 return 1
             fi
             
-            # If this logfile is the final logfile, we're done
+            # If this logfile is the implementation logfile, we're done
             echo $logfile | grep -q "impl_1/runme.log$"
             if [ $? -eq 0 ]; then
                 echo pass >build.result
@@ -217,12 +207,18 @@ show_logs()
 
 
 # Determine the name of the Vivado project file
-project_file=$(ls *.xpr)
+project_file=$(ls *.xpr 2>/dev/null)
 
 # Does the project file exist?
 if [ -z "$project_file" ]; then
-   echo "No Vivado project found"
+   echo "Not a Vivado project: $PWD"
    exit 1
+fi
+
+# Make sure this is a git repo
+if [ -d .git ]; then
+    echo "Not a git repo: $PWD" 1>&2
+    exit 1
 fi
 
 # Make sure there's not already a build going for this project
@@ -244,10 +240,6 @@ VIVADO=$(get_vivado $project_file)
 # Get the base name of the project (without file extension)
 project="${project_file%.*}"
 
-# Create the names of the log files
-synth_log=${project}.runs/synth_1/runme.log
-impl_log=${project}.runs/impl_1/runme.log
-
 # Make sure the log files don't exist
 remove_runme_logs
 
@@ -265,6 +257,7 @@ echo "Waiting for Vivado to exit..."
 while true; do
    output=$(ps aux | grep Vivado | grep $PWD)
    test -z "$output" && break
+   sleep 2
 done
 
 
