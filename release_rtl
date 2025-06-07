@@ -1,0 +1,159 @@
+#==================================================================
+# Displays the most recent version number from a release history
+#==================================================================
+get_most_recent_version()
+{
+    local input_file=$1
+
+    # If we don't find any version numbers, this is our response
+    version="none"
+
+    # We're going to read the input file one line at a time...
+    while IFS= read line; do     
+
+        # Strip leading spaces from the line
+        line=$(echo $line | sed 's/^[ \t]*//');
+
+        # Fetch the first token on the line
+        token="${line%% *}"
+
+        # Find out if the token is "<digits>.<digits>.<digits>"
+        token=$(echo $token | grep -E "^[0-9]+\.[0-9]+\.[0-9]+$")
+
+        # If we found a version number, store it
+        test $? -eq 0 && version=$token
+
+    done < release_history
+
+    # Display the last version number we found
+    echo $version
+}
+#==================================================================
+
+
+#==================================================================
+# Returns the folder name of the most recent RTL build
+#==================================================================
+get_most_recent_rtl()
+{
+    # We don't have a folder name yet
+    result="none"
+
+    # Get the parent directory where we should look
+    parent_folder=$1
+
+    # This is the name of a temp-file we're going to write
+    temp_file=rtl_folders
+
+    # Search for RTL build directories, sorted in reverse order
+    # (i.e., newest first)
+    ls -1rd ${parent_folder}/20* >$temp_file 2>/dev/null
+
+    # Fetch the first line of that list
+    while IFS= read line; do     
+        result=$line
+        break;
+    done < $temp_file
+
+    # we're done with the temp file
+    rm -rf $temp_file
+
+    # Show the result
+    echo $result
+}
+#==================================================================
+
+# By default, we're not running in test-only mode
+test_only_mode=0
+
+# We don't yet know what our source folder for the release is
+release_source=
+
+# Parse the command line options
+while [ ! -z $1 ]; do
+
+    # Are we running in "test-only" mode?
+    if [ "$1" == "--test" ] || [ "$1" == "-test" ]; then
+        test_only_mode=1
+        shift
+        continue
+    fi
+
+    # If this option begins with -, the caller screwed up
+    if [ $(echo $1 | cut -c1-1) == "-" ]; then
+        echo "Unknown option $1" 1>&2
+        exit 1
+    fi
+
+    # Fetch the timestamp the caller handed us
+    release_source=$1
+    break;
+
+done
+
+
+# If the caller didn't give us a directory name, use a default
+test -z $release_source && release_source=runtime
+
+# Make sure the release folder exists
+if [ ! -d $release_source ]; then
+    echo "Release source not found $(realpath $release_source)" 1>&2
+    exit 1
+fi
+
+# This is the name of the release_history file
+history_file=release_history
+
+# Does the file exist?
+if [ ! -f $history_file ]; then
+    echo "$history_file not found in $PWD" 1>&2
+    exit 1
+fi
+
+# Find out the name of our project
+project=$(basename $PWD)
+
+# Fetch the version number of the most recent release
+version=$(get_most_recent_version $history_file)
+
+# If there's no version number, something is wrong!
+if [ $version == "none" ]; then
+    echo "No version found in $PWD/$history_file" 1>&2
+    exit 1
+fi
+
+# This is the folder where our release will be written to
+release_folder=${VIVADO_BUILD_FOLDER}/${project}/releases/${version}
+
+# If this release already exists, complain!
+if [ -d $release_folder ]; then
+    echo "Release $version of $project already exists!" 1>&2
+    exit 1
+fi 
+
+# Find the most recently completed RTL build
+rtl_folder=$(get_most_recent_rtl ${VIVADO_BUILD_FOLDER}/$project)
+
+# If there's no matching RTL, something is wrong!
+if [ $rtl_folder == "none" ]; then
+    echo "No RTL found in ${VIVADO_BUILD_FOLDER}/$project" 1>&2
+    exit 1
+fi
+
+#
+#  If we're in test-only mode, display what would happen
+#
+if [ $test_only_mode -eq 1 ]; then
+    echo "mkdir -p ${release_folder}/bitstream"
+    echo "cp $release_source $release_folder"
+    echo "cp $rtl_folder into $release_folder/bitstream"
+else
+    
+    # Create the release folder and the "bitstream" subfolder
+    mkdir -p ${release_folder}/bitstream
+
+    # Copy the files into the release
+    cp ${release_source}/* ${release_folder}
+    cp ${rtl_folder}/*     ${release_folder}/bitstream
+
+fi

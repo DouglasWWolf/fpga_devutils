@@ -46,7 +46,7 @@ update_timestamp_file()
         fi
 
         # Fetch the timestamp the caller handed us
-        local timestamp=$1
+        timestamp=$1
         break;
     done
 
