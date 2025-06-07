@@ -1,3 +1,15 @@
+
+#==========================================================================
+# Displays the git-hash of the most recent commit
+#==========================================================================
+get_commit_hash()
+{
+    # Display the hash of the latest comment
+    git log -1 --pretty=format:"%H" 
+}
+#==========================================================================
+
+
 #==================================================================
 # Displays the most recent version number from a release history
 #==================================================================
@@ -95,7 +107,7 @@ done
 # If the caller didn't give us a directory name, use a default
 test -z $release_source && release_source=runtime
 
-# Make sure the release folder exists
+# Make sure the release source folder exists
 if [ ! -d $release_source ]; then
     echo "Release source not found $(realpath $release_source)" 1>&2
     exit 1
@@ -156,4 +168,20 @@ else
     cp ${release_source}/* ${release_folder}
     cp ${rtl_folder}/*     ${release_folder}/bitstream
 
+    # Fetch the githash of the bitstream
+    rtl_hash=$(cat ${release_folder}/bitstream/githash)
+
+    # Write the git hashes into the release folder
+    echo "    rtl_hash=$rtl_hash"           >${release_folder}/githash
+    echo "support_hash=$(get_commit_hash)" >>${release_folder}/githash
+
+    # If there is a post-release script for this repo, run it
+    post_release="./post_release.sh"
+    if [ -f $post_release ]; then
+        chmod +x $post_release
+        $post_release $release_folder
+    fi
+
 fi
+
+
