@@ -72,6 +72,46 @@ get_most_recent_rtl()
 }
 #==================================================================
 
+#==================================================================
+# This function locates "revision_history.vh" and parses it to
+# produce a string that looks like "^<major>\.<minor>\."
+#
+# The string this produces is a regular expression, intended to
+# be fed to grep
+#==================================================================
+get_regex_revision_history_vh()
+{
+    # Find the revision file
+    filename=$(find . | grep revision_history.vh)
+    if [ -z $filename ]; then
+        echo "revision_history.vh not found beneath $PWD" 1>&2
+        return 1
+    fi
+
+    # Fetch the three components
+    major=$(grep VERSION_MAJOR $filename 2>/dev/null)
+    minor=$(grep VERSION_MINOR $filename 2>/dev/null)
+
+    # Extract the part of the line after the "="
+    major="${major#*=}"
+    minor="${minor#*=}"
+
+    # Throw away semicolons, spaces, and tabs
+    major=$(echo $major | sed 's/;//' | sed 's/ //' | sed 's/\t//')
+    minor=$(echo $minor | sed 's/;//' | sed 's/ //' | sed 's/\t//')
+
+    # Ensure that all three components exist
+    if [ -z "$major" ] || [ -z "$minor" ]; then
+        echo "Malformed $(realpath $filename)" 1>&2
+        return 1
+    fi
+
+    # Display the revision string
+    echo "^${major}\.${minor}\."
+}
+#==================================================================
+
+
 # By default, we're not running in test-only mode
 test_only_mode=0
 
@@ -134,20 +174,34 @@ fi
 project=$(basename $PWD)
 
 # Fetch the version number of the most recent release
-version=$(get_most_recent_version $history_file)
+release_version=$(get_most_recent_version $history_file)
 
 # If there's no version number, something is wrong!
-if [ $version == "none" ]; then
+if [ $release_version == "none" ]; then
     echo "No version found in $PWD/$history_file" 1>&2
     exit 1
 fi
 
+# Find the x.y version number of the RTL
+rtl_version=$(get_regex_revision_history_vh)
+test $? -ne 0 && exit 1
+
+# Does the x.y part of the release_version match that of rtl_version?
+echo $release_version | grep -q "$rtl_version"
+
+# Make sure that x.y of release_version corresponds to the rtl_version
+if [ $? -ne 0 ]; then
+    echo "Version numbering error!"
+    echo "Release version $release_version does not match $rtl_version"
+    exit 1
+fi
+
 # This is the folder where our release will be written to
-release_folder=${VIVADO_BUILD_FOLDER}/${project}/releases/${version}
+release_folder=${VIVADO_BUILD_FOLDER}/${project}/releases/${release_version}
 
 # If this release already exists, complain!
 if [ -d $release_folder ]; then
-    echo "Release $version of $project already exists!" 1>&2
+    echo "Release $release_version of $project already exists!" 1>&2
     exit 1
 fi 
 

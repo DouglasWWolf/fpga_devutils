@@ -1,4 +1,10 @@
 #==================================================================
+# This script runs some basic checks to make sure the release has
+# a valid release version number prior to starting build_vivado
+#==================================================================
+
+
+#==================================================================
 # This function locates "revision_history.vh" and parses it to
 # produce a string that looks like "^<major>\.<minor>\."
 #
@@ -70,7 +76,6 @@ get_most_recent_version()
 }
 #==================================================================
 
-
 # Find out the name of our project
 project=$(basename $PWD)
 
@@ -86,11 +91,11 @@ if [ "$release_version" == "none" ]; then
 fi
 
 # Does the x.y part of the release_version match that of rtl_version?
-echo $release_version | grep -q $rtl_version
+echo $release_version | grep -q "$rtl_version"
 
 # Make sure that x.y of release_version corresponds to the rtl_version
 if [ $? -ne 0 ]; then
-    echo "Versioning numbering error!"
+    echo "Version numbering error!"
     echo "Release version $release_version does not match $rtl_version"
     exit 1
 fi
@@ -104,7 +109,8 @@ if [ -d $release_folder ]; then
     exit 1
 fi 
 
-build_vivado -no-build
+# Our sanity checks have passed, perform the Vivado build
+build_vivado
 
 
 
