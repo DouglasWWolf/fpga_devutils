@@ -348,6 +348,51 @@ get_artifact_folder()
 
 
 #==================================================================
+# This function locates "revision_history.vh" and parses it to
+# produce a string that looks like <major>.<minor>.<build>
+#
+# Here, <build> is horribly named.  It's really just the 3rd part
+# of the "x.y.z" version string.  We should track down the guy that
+# named it "build" and tell him that he's no longer allowed to name
+# things!
+#==================================================================
+parse_revision_history_vh()
+{
+    # Find the revision file
+    filename=$(find . | grep revision_history.vh)
+    if [ -z $filename ]; then
+        echo "revision_history.vh not found beneath $PWD" 1>&2
+        return 1
+    fi
+
+    # Fetch the three components
+    major=$(grep VERSION_MAJOR $filename 2>/dev/null)
+    minor=$(grep VERSION_MINOR $filename 2>/dev/null)
+    build=$(grep VERSION_BUILD $filename 2>/dev/null)
+
+    # Extract the part of the line after the "="
+    major="${major#*=}"
+    minor="${minor#*=}"
+    build="${build#*=}"
+
+    # Throw away semicolons, spaces, and tabs
+    major=$(echo $major | sed 's/;//' | sed 's/ //' | sed 's/\t//')
+    minor=$(echo $minor | sed 's/;//' | sed 's/ //' | sed 's/\t//')
+    build=$(echo $build | sed 's/;//' | sed 's/ //' | sed 's/\t//')
+
+    # Ensure that all three components exist
+    if [ -z "$major" ] || [ -z "$minor" ] || [ -z "$build" ]; then
+        echo "Malformed $(realpath $filename)" 1>&2
+        return 1
+    fi
+
+    # Display the revision string
+    echo ${major}.${minor}.${build}
+}
+#==================================================================
+
+
+#==================================================================
 # This copies the build artifacts to the artifact folder
 #==================================================================
 copy_build_artifacts()
@@ -377,6 +422,10 @@ copy_build_artifacts()
 
     # Create an artifact file that contains the git hash
     echo $(get_commit_hash) > $dest/git_hash
+
+    # Create an artifact file containing the x.y.z version 
+    version=$(parse_revision_history_vh)
+    echo $version > $dest/version
 }
 #==================================================================
 
