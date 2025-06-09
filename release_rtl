@@ -35,7 +35,7 @@ get_most_recent_version()
         # If we found a version number, store it
         test $? -eq 0 && version=$token
 
-    done < $1
+    done < $input_file
 
     # Display the last version number we found
     echo $version
@@ -62,10 +62,7 @@ get_most_recent_rtl()
     ls -1rd ${parent_folder}/20* >$temp_file 2>/dev/null
 
     # Fetch the first line of that list
-    while IFS= read line; do     
-        result=$line
-        break;
-    done < $temp_file
+    IFS= read result < $temp_file
 
     # we're done with the temp file
     rm -rf $temp_file
