@@ -428,6 +428,22 @@ copy_build_artifacts()
 }
 #==================================================================
 
+# If this is 0, the actual build will be skipped
+perform_build=1
+
+# Parse the command line
+while [ ! -z "$1" ]; do
+
+    if [ "$1" == "-no-build" ] || [ "$1" == "--no-build" ]; then
+        perform_build=0
+        shift
+        continue
+    fi
+
+    echo "bad command option: $1" 1>&2
+    exit 1
+
+done
 
 # Determine the name of the Vivado project file
 project_file=$(ls *.xpr 2>/dev/null)
@@ -460,20 +476,11 @@ fi
 # Create the build script for this project
 create_build_script $project_file >vivado_build.tcl
 
-# Clean up existing Vivado log/journal cruft
-rm -rf vivado*\.log vivado*\.jou
-
 # Determine the executable path to the correct version of Vivado
 VIVADO=$(get_vivado $project_file)
 
 # Get the base name of the project (without file extension)
 project="${project_file%.*}"
-
-# Get rid of all the end products of any previous build
-rm -rf ${project}.runs/impl_1/*
-
-# Make sure the log files don't exist
-remove_logs
 
 # This timestamp will be used to name the build artifact folder
 # and will also be written into the bitstream file
@@ -488,8 +495,21 @@ update_timestamp_file $timestamp
 # Fetch the name of the folder where our build artifacts will be stored
 artifact_folder=$(get_artifact_folder $timestamp)
 
-# Kick off Vivado, which will run in the background
-$VIVADO -mode batch -source vivado_build.tcl
+# If we need to perform the actual build, make it so
+if [ $perform_build -eq 1 ]; then
+
+    # Clean up existing Vivado log/journal cruft
+    rm -rf vivado*\.log vivado*\.jou
+
+    # Get rid of all the end products of any previous build
+    rm -rf ${project}.runs/impl_1/*
+
+    # Make sure the log files don't exist
+    remove_logs
+
+    # Kick off Vivado, which will run in the background
+    $VIVADO -mode batch -source vivado_build.tcl
+fi
 
 # Show the output of the logfiles in real-time
 show_logs

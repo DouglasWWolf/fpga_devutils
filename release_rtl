@@ -81,12 +81,23 @@ test_only_mode=0
 # We don't yet know what our source folder for the release is
 release_source=
 
+# We don't yet know what folder our bitstream is coming from
+rtl_folder=
+
 # Parse the command line options
 while [ ! -z $1 ]; do
 
     # Are we running in "test-only" mode?
     if [ "$1" == "--test" ] || [ "$1" == "-test" ]; then
         test_only_mode=1
+        shift
+        continue
+    fi
+
+    # Did the user hand us an RTL folder?
+    if [ "$1" == "--rtl" ] || [ "$1" == "-rtl" ]; then
+        rtl_folder=$2
+        shift
         shift
         continue
     fi
@@ -143,8 +154,11 @@ if [ -d $release_folder ]; then
     exit 1
 fi 
 
-# Find the most recently completed RTL build
-rtl_folder=$(get_most_recent_rtl ${VIVADO_BUILD_FOLDER}/$project)
+# If the caller didn't hand us an rtl_folder, go find the most
+# recently built RTL for this project
+if [ -z "$rtl_folder" ]; then
+    rtl_folder=$(get_most_recent_rtl ${VIVADO_BUILD_FOLDER}/$project)
+fi
 
 # If there's no matching RTL, something is wrong!
 if [ $rtl_folder == "none" ]; then
