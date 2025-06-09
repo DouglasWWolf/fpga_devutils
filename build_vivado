@@ -285,12 +285,9 @@ show_logs()
         # Read the list, one line at a time
         while IFS= read logfile; do
 
-            # Have we already completed reading this logfile?
-            grep -q $logfile logs_completed
-            
             # If we've already read this logfile, skip it
-            test $? -eq 0 && continue;
-
+            grep -q $logfile logs_completed && continue
+            
             # Monitor this log file
             while true; do
                 sleep 1
@@ -299,7 +296,6 @@ show_logs()
                 test $? -eq 0 && break
             done
           
-            
             # Record the fact that we've already read this logfile
             echo $logfile >>logs_completed
             
@@ -320,6 +316,9 @@ show_logs()
             fi
 
         done < log_list
+
+        # Wait a moment for new logfiles to come into existence
+        sleep 5
     done
 }
 #==================================================================
