@@ -35,7 +35,7 @@ get_most_recent_version()
         # If we found a version number, store it
         test $? -eq 0 && version=$token
 
-    done < release_history
+    done < $1
 
     # Display the last version number we found
     echo $version
@@ -125,7 +125,7 @@ if [ ! -d $release_source ]; then
 fi
 
 # This is the name of the release_history file
-history_file=release_history
+history_file=release_history.txt
 
 # Does the file exist?
 if [ ! -f $history_file ]; then
@@ -183,11 +183,11 @@ else
     cp ${rtl_folder}/*     ${release_folder}/bitstream
 
     # Fetch the githash of the bitstream
-    rtl_hash=$(cat ${release_folder}/bitstream/githash)
+    rtl_hash=$(cat ${release_folder}/bitstream/git_hash)
 
     # Write the git hashes into the release folder
-    echo "    rtl_hash=$rtl_hash"           >${release_folder}/githash
-    echo "support_hash=$(get_commit_hash)" >>${release_folder}/githash
+    echo "    rtl_hash=$rtl_hash"           >${release_folder}/git_hash
+    echo "support_hash=$(get_commit_hash)" >>${release_folder}/git_hash
 
     # If there is a post-release script for this repo, run it
     post_release="./post_release.sh"
