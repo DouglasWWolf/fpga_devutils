@@ -86,7 +86,7 @@ update_timestamp_file()
     echo "//"                                                             >>$temp_file
     echo "// $hr"                                                         >>$temp_file
     echo "//"                                                             >>$temp_file
-    echo "localparam BUILD_DATE = ($day << 24) | ($month << 16) | $year;" >>$temp_file
+    echo "localparam BUILD_DATE = ($month << 24) | ($day << 16) | $year;" >>$temp_file
     echo "localparam BUILD_TIME = ($hour << 16) | ($min << 8) | $sec;"    >>$temp_file
 
 
