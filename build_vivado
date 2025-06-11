@@ -477,6 +477,7 @@ fi
 # non-zero exit-code, we don't run the build.
 pre_build="./pre_build.sh"
 if [ -f $pre_build ]; then
+    echo "Running pre-build step..."
     chmod +x $pre_build
     $pre_build
     test $? -ne 0 & exit
@@ -551,6 +552,7 @@ copy_build_artifacts $artifact_folder
 # If there is a post-build step, run it
 post_build="./post_build.sh"
 if [ -f $post_build ]; then
+    echo "Running post-build step..."
     chmod +x $post_build
     $post_build $artifact_folder
 fi
