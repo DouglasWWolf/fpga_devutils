@@ -473,6 +473,15 @@ if [ -z $VIVADO_BUILD_FOLDER ]; then
     exit 1
 fi
 
+# If there is a pre-build step, run it.  If it exits with a 
+# non-zero exit-code, we don't run the build.
+pre_build="./pre_build.sh"
+if [ -f $pre_build ]; then
+    chmod +x $pre_build
+    $pre_build
+    test $? -ne 0 & exit
+fi
+
 # Create the build script for this project
 create_build_script $project_file >vivado_build.tcl
 
