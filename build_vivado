@@ -218,7 +218,7 @@ update_timestamp_file()
     echo "//"                                                             >>$temp_file
     echo "// $hr"                                                         >>$temp_file
     echo "//"                                                             >>$temp_file
-    echo "localparam BUILD_DATE = ($day << 24) | ($month << 16) | $year;" >>$temp_file
+    echo "localparam BUILD_DATE = ($month << 24) | ($day << 16) | $year;" >>$temp_file
     echo "localparam BUILD_TIME = ($hour << 16) | ($min << 8) | $sec;"    >>$temp_file
 
     # Copy our new timestamp into the project source, but *without* updating
@@ -477,10 +477,11 @@ fi
 # non-zero exit-code, we don't run the build.
 pre_build="./pre_build.sh"
 if [ -f $pre_build ]; then
-    echo "Running pre-build step..."
+    echo "Pre-build step starting..."
     chmod +x $pre_build
     $pre_build
     test $? -ne 0 && exit
+    echo "Pre-build step complete"    
 fi
 
 # Create the build script for this project
@@ -552,7 +553,8 @@ copy_build_artifacts $artifact_folder
 # If there is a post-build step, run it
 post_build="./post_build.sh"
 if [ -f $post_build ]; then
-    echo "Running post-build step..."
+    echo "Post-build step starting..."
     chmod +x $post_build
     $post_build $artifact_folder
+    echo "Post-build step complete"
 fi
