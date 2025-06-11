@@ -480,7 +480,7 @@ if [ -f $pre_build ]; then
     echo "Running pre-build step..."
     chmod +x $pre_build
     $pre_build
-    test $? -ne 0 & exit
+    test $? -ne 0 && exit
 fi
 
 # Create the build script for this project
