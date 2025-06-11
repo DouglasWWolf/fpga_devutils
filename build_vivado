@@ -417,7 +417,7 @@ copy_build_artifacts()
     test -z $ltxfile || cp $ltxfile $dest/${project_name}.ltx
 
     # If fpga_regs.h exists, copy it to the destination directory
-    test -f fpga_regs.h && cp fpga_regs.h $dest/git_hash
+    test -f fpga_regs.h && cp fpga_regs.h $dest
 
     # Create an artifact file that contains the git hash
     echo $(get_commit_hash) > $dest/git_hash
