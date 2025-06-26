@@ -237,7 +237,8 @@ else
     rtl_hash=$(cat ${release_folder}/bitstream/git_hash)
 
     # Write the git hashes into the release folder
-    echo "    rtl_hash=$rtl_hash"           >${release_folder}/git_hash
+    echo "     release=${release_version}"  >${release_folder}/git_hash
+    echo "    rtl_hash=$rtl_hash"          >>${release_folder}/git_hash
     echo "support_hash=$(get_commit_hash)" >>${release_folder}/git_hash
 
     # If there is a post-release script for this repo, run it
