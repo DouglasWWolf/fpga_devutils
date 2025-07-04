@@ -409,7 +409,7 @@ copy_build_artifacts()
     # Determine which of our three build artifacts exist
     bitfile=$(find ${project}.runs/impl_1 | grep  "\.bit$")
     binfile=$(find ${project}.runs/impl_1 | grep  "\.bin$")
-    ltxfile=$(find ${project}.runs/impl_1 | grep  "\.ltx$")
+    ltxfile=$(find ${project}.runs/impl_1 | grep  "\.ltx$" | grep -v "debug_nets")
 
     # Copy each build artifact to the destination directory
     test -z $bitfile || cp $bitfile $dest/${project_name}.bit
