@@ -407,12 +407,14 @@ copy_build_artifacts()
     mkdir -p $dest
 
     # Determine which of our three build artifacts exist
-    bitfile=$(find ${project}.runs/impl_1 | grep  "\.bit$")
-    binfile=$(find ${project}.runs/impl_1 | grep  "\.bin$")
-    ltxfile=$(find ${project}.runs/impl_1 | grep  "\.ltx$" | grep -v "debug_nets")
+    bitfile=$(find ${project}.runs/impl_1 | grep "\.bit$")
+    binfile=$(find ${project}.runs/impl_1 | grep "\.bin$")
+    pdifile=$(find ${project}.runs/impl_1 | grep "\.pdi$")
+    ltxfile=$(find ${project}.runs/impl_1 | grep "\.ltx$" | grep -v "debug_nets")
 
     # Copy each build artifact to the destination directory
     test -z $bitfile || cp $bitfile $dest/${project_name}.bit
+    test -z $pdifile || cp $pdifile $dest/${project_name}.pdi
     test -z $binfile || cp $binfile $dest/${project_name}.bin
     test -z $ltxfile || cp $ltxfile $dest/${project_name}.ltx
 
