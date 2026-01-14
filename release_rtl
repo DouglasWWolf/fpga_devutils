@@ -230,7 +230,7 @@ else
     mkdir -p ${release_folder}/bitstream
 
     # Copy the files into the release
-    cp ${release_source}/* ${release_folder}
+    cp -r ${release_source}/* ${release_folder}
     cp ${rtl_folder}/*     ${release_folder}/bitstream
 
     # Fetch the githash of the bitstream
