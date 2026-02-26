@@ -83,7 +83,7 @@ EOT
 run_script script1.tcl
 
 # Throw away folders that we want rebuit from scratch
-rm -rf ${project}.cache ${project}.gen ${project}.runs
+rm -rf ${project}.cache ${project}.gen ../${project.gen} ${project}.runs
 
 # Create a folder where the top level verilog file will be generated
 mkdir -p ${project}.gen/sources_1/bd/${top_level}
