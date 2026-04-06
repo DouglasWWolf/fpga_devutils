@@ -1,0 +1,191 @@
+#
+# This script generates C++ code to read FPGA register
+# definitions on the fly
+#
+# Author: D. Wolf
+#
+file=
+
+#==============================================================================
+# Parse the command line
+#==============================================================================
+while [ ! -z $1 ]; do
+    if [ -z $file ]; then
+        file=$1
+        shift
+        continue
+    fi
+    echo "Invalid parameter:" $1 1>&2
+    exit 1
+done
+#==============================================================================
+
+
+#==============================================================================
+# Validate the input filename
+#==============================================================================
+test -z $file && file="fpga_regs.h"
+
+if [ ! -f $file ]; then
+    echo "not found: $file" 1>&2
+    exit 1
+fi
+#==============================================================================
+
+
+#==============================================================================
+# Find the length of the longest constant in the input file
+#==============================================================================
+max_length=0
+while IFS=' ' read -r def name addr; do
+    if [ ! -z $addr ]; then
+        length=${#name}
+        test $length -gt $max_length && max_length=$length
+    fi
+done <<< $(grep "#define" $file | sed 's/ULL$//')
+#==============================================================================
+
+
+#==============================================================================
+# This function space-pads a string to a specified length
+#==============================================================================
+pad() 
+{
+    local string=$1
+    local length=$2
+    padded_fmt="%-${length}s"
+    printf $padded_fmt $string
+}
+#==============================================================================
+
+
+#==============================================================================
+# Create the .h file with its prologue text
+#==============================================================================
+dot_h="register_struct.h"
+cat << EOF >$dot_h
+#pragma once
+//========================================
+//       This is generated code!
+//========================================
+#include <cstdint>
+
+struct registers_t
+{
+EOF
+#==============================================================================
+
+
+
+#==============================================================================
+# Create the .cpp file with its prologue text
+#==============================================================================
+dot_cpp="read_register_definitions.cpp"
+cat <<EOF >$dot_cpp
+//========================================
+//       This is generated code!
+//========================================
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <string>
+#include "register_struct.h"
+
+static void eval(registers_t& reg, const char* name, uint64_t descriptor)
+{
+EOF
+#==============================================================================
+
+
+#==============================================================================
+# In both the header file and the cpp file, we generate one line of code
+# for each register
+#==============================================================================
+while IFS=' ' read -r def name addr; do
+    if [ ! -z $addr ]; then
+        padded_name=$(pad $name $max_length)
+        padded_qname=$(pad \"${name}\" $((max_length+2)))
+        printf "    std::uint64_t ${padded_name} = 0xFFFFFFFF;\n" >>$dot_h
+        printf "    if (strcmp(name, ${padded_qname}) == 0) {reg.${padded_name} = descriptor; return;}\n" >>$dot_cpp
+    fi
+done <<< $(grep "#define" $file | sed 's/ULL$//')
+#==============================================================================
+
+
+#==============================================================================
+# Finish the .h file
+#==============================================================================
+cat <<EOF >>$dot_h
+};
+
+bool read_register_definitions(registers_t& reg, std::string filename = "fpga_regs.h");
+EOF
+#==============================================================================
+
+
+#==============================================================================
+# Finish the .cpp file
+#==============================================================================
+cat <<EOF >>$dot_cpp
+};
+
+//=============================================================================
+// read_register_definitions() - Reads in an FPGA register definiton file and
+//                               fills in a registers_t structure with the
+//                               values it finds there
+//=============================================================================
+bool read_register_definitions(registers_t& reg, std::string filename)
+{
+    char line[1000], *in, *out;
+    char name[1000];
+
+    // Open the input file
+    FILE* ifile = fopen(filename.c_str(), "r");
+
+    // Complain if we can't
+    if (ifile == nullptr) return false;
+
+    // Loop through every line of the input file
+    while (fgets(line, sizeof(line), ifile))
+    {
+        // Skip past any leading whitespace
+        in = line;
+        while (*in == ' ' || *in == '\t') ++in;
+
+        // Ignore any line that doesn't begin with "#define"
+        if (strncmp(in, "#define", 7) != 0) continue;
+
+        // Skip past the #define
+        in = in + 7;
+
+        // Skip past whitespace after #define
+        while (*in == ' ' || *in == '\t') ++in;
+
+        // Point to the name field
+        out = name;
+
+        // Copy the token to "name[]" and nul-terminate it
+        while (*in != ' ' && *in != '\t' && *in != 10 && *in != 13) *out++ = *in++;
+        *out = 0;
+
+        // If we've hit the end of the line, this isn't a register definition
+        if (*in == 10 || *in == 13) continue;
+
+        // Skip past whitespace after register name
+        while (*in == ' ' || *in == '\t') ++in;
+
+        // Extract the address of the register
+        uint64_t descriptor = strtoull(in, nullptr, 0);
+
+        // Fill in the appropriate field in our register structure
+        eval(reg, name, descriptor);
+    }
+
+    // We're done with the input file
+    fclose(ifile);
+    return true;
+}
+//=============================================================================
+EOF
+#==============================================================================
+
