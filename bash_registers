@@ -33,17 +33,12 @@ if [ ! -f $file ]; then
     exit 1
 fi
 
-flag_wide=$((0x40000000))
 while IFS=' ' read -r def name addr; do
     if [ ! -z $addr ]; then
         addr=$((addr))
-        hi=$(( addr >> 32 ))
-        lo=$(( addr & 0xFFFFFFFF))
-        if [ $hi -eq 0 ] || [ $hi -eq $flag_wide ]; then
-            cmd=$(printf "%s=0x%X" $name $lo)
-            eval $cmd
-            test $show -eq 1 && echo $cmd
-        fi
+        cmd=$(printf "%s=0x%X" $name $addr)
+        eval $cmd
+        test $show -eq 1 && echo $cmd
     fi
 done <<< $(grep "#define" $file | sed 's/ULL$//')
 
