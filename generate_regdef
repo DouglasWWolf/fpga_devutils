@@ -24,7 +24,7 @@ done
 #==============================================================================
 # Validate the input filename
 #==============================================================================
-test -z $file && file="fpga_regs.h"
+test -z $file && file="fpga_reg.h"
 
 if [ ! -f $file ]; then
     echo "not found: $file" 1>&2
@@ -118,7 +118,7 @@ done <<< $(grep "#define" $file | sed 's/ULL$//')
 cat <<EOF >>$dot_h
 };
 
-bool read_register_definitions(registers_t& reg, std::string filename = "fpga_regs.h");
+bool read_register_definitions(registers_t& reg, std::string filename = "fpga_reg.h");
 EOF
 #==============================================================================
 
